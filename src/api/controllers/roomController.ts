@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import {
   ConnectedSocket,
   OnDisconnect,
@@ -34,6 +35,41 @@ export class RoomController {
     const currentPlayer = playersInRoom.find((player) => player.socketId === socket.id);
 
     return currentPlayer ? currentPlayer.symbol : "";
+  }
+
+  private generateRandomRoomId(): string {
+    // Generating a random room ID using crypto module
+    return randomBytes(4).toString("hex");
+  }
+
+  @OnMessage("create_game")
+  public async createGame(
+    @SocketIO() io: Server,
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() message: any
+  ) {
+    console.log("Creating a new game: ", message);
+
+    const playerInRoom = this.players.find((player) => player.socketId === socket.id);
+
+    if (playerInRoom) {
+      socket.emit("room_create_error", {
+        error: "You are already in a room. Leave the current room to create a new one.",
+      });
+    } else {
+      const roomId = this.generateRandomRoomId();
+
+      await socket.join(roomId);
+      this.players.push({
+        socketId: socket.id,
+        roomId: roomId,
+        symbol: "x", // Assuming the creator is always 'x'
+      });
+
+      socket.emit("room_created", { roomId });
+
+      // You may emit additional events or perform actions specific to the creation process
+    }
   }
 
   @OnMessage("join_game")
