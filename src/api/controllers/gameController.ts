@@ -26,6 +26,9 @@ export class GameController {
   ) {
     const gameRoom = this.getSocketGameRoom(socket);
     socket.to(gameRoom).emit("on_game_update", message);
+
+    // Restart the timer on each game update
+    this.restartTimer(io, gameRoom);
   }
 
   @OnMessage("game_win")
@@ -36,7 +39,51 @@ export class GameController {
   ) {
     const gameRoom = this.getSocketGameRoom(socket);
     socket.to(gameRoom).emit("on_game_win", message);
+    this.stopTimer(io, gameRoom); // Stop the timer when the game is won
   }
-  
-}
+  @OnMessage("game_end_due_to_timer")
+  public async gameEndDueToTimer(
+    @SocketIO() io: Server,
+    @ConnectedSocket() socket: Socket
+  ) {
+    const gameRoom = this.getSocketGameRoom(socket);
+    const remainingPlayer = this.getRemainingPlayer(io, gameRoom, socket.id);
 
+    if (remainingPlayer) {
+      io.to(remainingPlayer).emit("on_game_win", {
+        message: "Opponent ran out of time. You win!",
+      });
+    }
+  }
+
+  @OnMessage("opponent_time_update")
+  public async opponentTimeUpdate(
+    @SocketIO() io: Server,
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() message: any
+  ) {
+    const gameRoom = this.getSocketGameRoom(socket);
+    socket.to(gameRoom).emit("opponent_time_update", message);
+  }
+
+  private restartTimer(io: Server, gameRoom: string) {
+    // Send a message to all players in the room to restart their timers
+    io.to(gameRoom).emit("restart_timer");
+  }
+
+  private stopTimer(io: Server, gameRoom: string) {
+    // Send a message to all players in the room to stop their timers
+    io.to(gameRoom).emit("stop_timer");
+  }
+
+  private getRemainingPlayer(
+    io: Server,
+    gameRoom: string,
+    currentSocketId: string
+  ): string | undefined {
+    const playersInRoom = Array.from(
+      io.sockets.adapter.rooms.get(gameRoom) || []
+    );
+    return playersInRoom.find((socketId) => socketId !== currentSocketId);
+  }
+}
