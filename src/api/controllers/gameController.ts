@@ -37,4 +37,6 @@ export class GameController {
     const gameRoom = this.getSocketGameRoom(socket);
     socket.to(gameRoom).emit("on_game_win", message);
   }
+  
 }
+
