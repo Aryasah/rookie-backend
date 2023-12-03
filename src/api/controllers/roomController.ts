@@ -123,6 +123,7 @@ export class RoomController {
 
       if (remainingPlayer) {
         io.to(remainingPlayer.socketId).emit("on_game_win", {
+          reason: "disconnect",
           message: "Opponent left the game. You win!",
         });
       }

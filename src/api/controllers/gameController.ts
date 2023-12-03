@@ -38,7 +38,7 @@ export class GameController {
     @MessageBody() message: any
   ) {
     const gameRoom = this.getSocketGameRoom(socket);
-    socket.to(gameRoom).emit("on_game_win", message);
+    socket.to(gameRoom).emit("on_game_win", { message, reason: "win" });
     this.stopTimer(io, gameRoom); // Stop the timer when the game is won
   }
   @OnMessage("game_end_due_to_timer")
@@ -51,7 +51,8 @@ export class GameController {
 
     if (remainingPlayer) {
       io.to(remainingPlayer).emit("on_game_win", {
-        message: "Opponent ran out of time. You win!",
+        reason: "timer",
+        message: "Timer Over,Opponent ran out of time. You win!",
       });
     }
   }
